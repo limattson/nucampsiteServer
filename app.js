@@ -6,11 +6,12 @@ var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
-
 const campsiteRouter = require('./routes/campsiteRouter');
 const promotionRouter = require('./routes/promotionsRouter');
 const partnerRouter = require('./routes/partnerRouter');
 
+const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const mongoose = require('mongoose');
 const url = 'mongodb://localhost:27017/nucampsite';
 const connect = mongoose.connect(url, {
@@ -19,6 +20,8 @@ const connect = mongoose.connect(url, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
+const passport = require('passport');
+const authenticate = require('./authenticate');
 
 connect.then(() => console.log('Connected correctly to server'),
   err => console.log(err)
@@ -34,28 +37,30 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+//app.use(cookieParser('12345-67890-09876-54321'));
 
-function auth (req, res, next) {
-  console.log(req.headers);
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    const err = new Error('You are not authenticated!');
-    res.setHeader('WWW-authenticate', 'Basic');
-    err.status = 401;
-    return next (err);
-  }
+app.use(session({
+  name: 'session-id',
+  secret: '12345-67890-09876-54321',
+  saveUninitialized: false,
+  resave: false,
+  store: new FileStore()
+}));
 
-  const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
-  const user = auth[0];
-  const pass = auth[1];
-  if (user === 'admin' && pass === 'password') {
-    return next();
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+app.use(passport.initialize());
+app.use(passport.session());
+
+function auth(req, res, next) {
+  console.log(req.user);
+
+  if (!req.user) {
+      const err = new Error('You are not authenticated!');                    
+      err.status = 401;
+      return next(err);
   } else {
-    const err = new Error('You are not authenticated!');
-    res.setHeader('WWW-Authenticate', 'Basic');
-    err.status = 401;
-    return next(err);
+      return next();
   }
 }
 
@@ -63,8 +68,7 @@ app.use(auth);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+
 app.use('/campsites', campsiteRouter);
 app.use('/promotions', promotionRouter);
 app.use('/partners', partnerRouter);
