@@ -1,6 +1,7 @@
 const express = require('express');
 const promotionsRouter = express.Router();
 const Promotion = require('../models/promotions');
+const authenticate = require('../authenticate');
 
 promotionsRouter.route('/')
 .get((req, res, next) => {
@@ -12,7 +13,7 @@ promotionsRouter.route('/')
         })
         .catch(err => next(err));
 })
-.post((req, res, next) => {
+.post(authenticate.verifyUser, (req, res, next) => {
     Promotion.create(req.body)
         .then(promotion => {
             console.log('promotion Created', promotion);
@@ -22,11 +23,11 @@ promotionsRouter.route('/')
         })
         .catch(err => next(err));
 })
-.put((req, res) => {
+.put(authenticate.verifyUser, (req, res) => {
     res.statusCode = 403;
     res.end('PUT operation not supported on /promotions');
 })
-.delete((req, res, next) => {
+.delete(authenticate.verifyUser, (req, res, next) => {
     Promotion.findById(req.params.promotionId)
         .then(promotion => {
             console.log('Promotion Created', promotion);
@@ -38,7 +39,7 @@ promotionsRouter.route('/')
 });
 
 promotionsRouter.route('/:promotionId')
-.all((req, res, next) => {
+.all(authenticate.verifyUser, (req, res, next) => {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/plain');
     next();
@@ -46,14 +47,14 @@ promotionsRouter.route('/:promotionId')
 .get((req, res) => {
     res.end('Will send all the promotions to you');
 })
-.post((req, res) => {
+.post(authenticate.verifyUser, (req, res) => {
     res.end(`Will add the promotions: ${req.body.name} with description: ${req.body.description}`);
 })
-.put((req, res) => {
+.put(authenticate.verifyUser, (req, res) => {
     res.statusCode = 403;
     res.end('PUT operation not supported on /promotions');
 })
-.delete((req, res) => {
+.delete(authenticate.verifyUser, (req, res) => {
     res.end('Deleting all promotions');
 });
 
