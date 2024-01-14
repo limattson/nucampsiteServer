@@ -1,37 +1,37 @@
 const express = require('express');
-const Partner = require('../models/partner');
+const Promotion = require('../models/promotion');
 const authenticate = require('../authenticate');
 
-const partnerRouter = express.Router();
+const promotionRouter = express.Router();
 
-partnerRouter.route('/')
+promotionRouter.route('/')
 .get((req, res, next) => {
-    Partner.find()
-    .then(partners => {
+    Promotion.find()
+    .then(promotions => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
-        res.json(partners);
+        res.json(promotions);
     })
     .catch(err => next(err));
 })
 // TODO: authorize admins only!
 .post(authenticate.verifyUser, (req, res, next) => {
-    Partner.create(req.body)
-    .then(partner => {
-        console.log('Partner Created ', partner);
+    Promotion.create(req.body)
+    .then(promotion => {
+        console.log('Promotion Created ', promotion);
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
-        res.json(partner);
+        res.json(promotion);
     })
     .catch(err => next(err));
 })
 .put(authenticate.verifyUser, (req, res) => {
     res.statusCode = 403;
-    res.end('PUT operation not supported on /partners');
+    res.end('PUT operation not supported on /promotions');
 })
 // TODO: authorize admins only!
 .delete(authenticate.verifyUser, (req, res, next) => {
-    Partner.deleteMany()
+    Promotion.deleteMany()
     .then(response => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
@@ -40,35 +40,35 @@ partnerRouter.route('/')
     .catch(err => next(err));
 });
 
-partnerRouter.route('/:partnerId')
+promotionRouter.route('/:promotionId')
 .get((req, res, next) => {
-    Partner.findById(req.params.partnerId)
-    .then(partner => {
+    Promotion.findById(req.params.promotionId)
+    .then(promotion => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
-        res.json(partner);
+        res.json(promotion);
     })
     .catch(err => next(err));
 })
 .post(authenticate.verifyUser, (req, res) => {
     res.statusCode = 403;
-    res.end(`POST operation not supported on /partners/${req.params.partnerId}`);
+    res.end(`POST operation not supported on /promotions/${req.params.promotionId}`);
 })
 // TODO: authorize admins only!
 .put(authenticate.verifyUser, (req, res, next) => {
-    Partner.findByIdAndUpdate(req.params.partnerId, {
+    Promotion.findByIdAndUpdate(req.params.promotionId, {
         $set: req.body
     }, { new: true })
-    .then(partner => {
+    .then(promotion => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
-        res.json(partner);
+        res.json(promotion);
     })
     .catch(err => next(err));
 })
 // TODO: authorize admins only!
 .delete(authenticate.verifyUser, (req, res, next) => {
-    Partner.findByIdAndDelete(req.params.partnerId)
+    Promotion.findByIdAndDelete(req.params.promotionId)
     .then(response => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
@@ -77,5 +77,5 @@ partnerRouter.route('/:partnerId')
     .catch(err => next(err));
 });
 
-module.exports = partnerRouter;
+module.exports = promotionRouter;
 
