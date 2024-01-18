@@ -1,18 +1,22 @@
 const express = require('express');
 const User = require('../models/user');
 const passport = require('passport');
-const authenticate = require('../authenticate');
+const {verifyAdmin, verifyUser}= require('../authenticate');
 
 const router = express.Router();
 
 /* GET users listing. */
 // TODO: Implement GET / route to return all users (remove the mock response in line 12).
 // TODO: authorize admins only!
-router.get('/', (req, res, next) => {
-    res.send('respond with a resource');
+router.get('/', verifyUser, verifyAdmin, (req, res, next) => {
+    User.find().then(users => {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.json(users);
+    }).catch(err => next(err))
 });
 
-router.post('/signup', (req, res) => {
+router.post('/signup', verifyUser, (req, res) => {
     User.register(
         new User({username: req.body.username}),
         req.body.password,

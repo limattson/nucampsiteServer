@@ -16,7 +16,7 @@ campsiteRouter.route('/')
     .catch(err => next(err));
 })
 // TODO: authorize admins only!
-.post(authenticate.verifyUser, (req, res, next) => {
+.post(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Campsite.create(req.body)
     .then(campsite => {
         console.log('Campsite Created ', campsite);
@@ -31,7 +31,7 @@ campsiteRouter.route('/')
     res.end('PUT operation not supported on /campsites');
 })
 // TODO: authorize admins only!
-.delete(authenticate.verifyUser, (req, res, next) => {
+.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Campsite.deleteMany()
     .then(response => {
         res.statusCode = 200;
@@ -57,7 +57,7 @@ campsiteRouter.route('/:campsiteId')
     res.end(`POST operation not supported on /campsites/${req.params.campsiteId}`);
 })
 // TODO: authorize admins only!
-.put(authenticate.verifyUser, (req, res, next) => {
+.put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Campsite.findByIdAndUpdate(req.params.campsiteId, {
         $set: req.body
     }, { new: true })
@@ -69,7 +69,7 @@ campsiteRouter.route('/:campsiteId')
     .catch(err => next(err));
 })
 // TODO: authorize admins only!
-.delete(authenticate.verifyUser, (req, res, next) => {
+.delete(authenticate.verifyAdmin, authenticate.verifyUser, (req, res, next) => {
     Campsite.findByIdAndDelete(req.params.campsiteId)
     .then(response => {
         res.statusCode = 200;
@@ -80,7 +80,7 @@ campsiteRouter.route('/:campsiteId')
 });
 
 campsiteRouter.route('/:campsiteId/comments')
-.get((req, res, next) => {
+.get(authenticate.verifyUser, (req, res, next) => {
     Campsite.findById(req.params.campsiteId)
     .populate('comments.author')
     .then(campsite => {
@@ -122,7 +122,7 @@ campsiteRouter.route('/:campsiteId/comments')
     res.end(`PUT operation not supported on /campsites/${req.params.campsiteId}/comments`);
 })
 // TODO: authorize admins only!
-.delete(authenticate.verifyUser, (req, res, next) => {
+.delete(authenticate.verifyUser, authenticate.verifyAdmin,(req, res, next) => {
     Campsite.findById(req.params.campsiteId)
     .then(campsite => {
         if (campsite) {
@@ -176,6 +176,9 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
         .then(campsite => {
             if (campsite && campsite.comments.id(req.params.commentId)) {
                 const comment = campsite.comments.id(req.params.commentId);
+                if (comment.author === req.user._id) {
+                    return next();
+                }
                 if (req.body.rating) {
                     comment.rating = req.body.rating;
                 }
@@ -207,14 +210,21 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
         .then(campsite => {
             if (campsite && campsite.comments.id(req.params.commentId)) {
                 const comment = campsite.comments.id(req.params.commentId);
-                comment.remove();
-                campsite.save()
-                    .then(campsite => {
-                        res.statusCode = 200;
-                        res.setHeader('Content-Type', 'application/json');
-                        res.json(campsite);
-                    })
-                    .catch(err => next(err));
+                if (comment.author === req.user._id) {
+                    comment.remove();
+                    campsite.save()
+                        .then(campsite => {
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.json(campsite);
+                        })
+                        .catch(err => next(err));
+                } else {
+                    // If the user is not the author of the comment, respond with a forbidden status code
+                    res.statusCode = 403; // Forbidden
+                    res.setHeader('Content-Type', 'application/json');
+                    res.json({ error: "You are not authorized to delete this comment." });
+                }
             } else if (!campsite) {
                 const err = new Error(`Campsite ${req.params.campsiteId} not found`);
                 err.status = 404;
