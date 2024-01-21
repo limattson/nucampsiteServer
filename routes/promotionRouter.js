@@ -6,7 +6,7 @@ const promotionRouter = express.Router();
 
 promotionRouter.route('/')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
-    .get(cors.cors, (req, res, next) => {
+.get(cors.cors, (req, res, next) => {
     Promotion.find()
     .then(promotions => {
         res.statusCode = 200;
@@ -41,7 +41,7 @@ promotionRouter.route('/')
 
 promotionRouter.route('/:promotionId')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
-    .get(cors.cors, (req, res, next) => {
+.get(cors.cors, (req, res, next) => {
     Promotion.findById(req.params.promotionId)
     .then(promotion => {
         res.statusCode = 200;
