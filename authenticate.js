@@ -1,44 +1,53 @@
-const passport = require('passport');
-const LocalStrategy = require('passport-local').Strategy;
-const User = require('./models/user');
-const JwtStrategy = require('passport-jwt').Strategy;
-const ExtractJwt = require('passport-jwt').ExtractJwt;
-const jwt = require('jsonwebtoken'); // used to create, sign, and verify tokens
+const passport = require('passport')
+const User = require('./models/user')
+const config = require('./config')
+
+const LocalStrategy = require('passport-local').Strategy
+
+const JwtStrategy = require('passport-jwt').Strategy
+const ExtractJwt = require('passport-jwt').ExtractJwt
+const jwt = require('jsonwebtoken')
+
 const FacebookTokenStrategy = require('passport-facebook-token');
 
-const config = require('./config.js');
 
-exports.local = passport.use(new LocalStrategy(User.authenticate()));
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+passport.use(new LocalStrategy(User.authenticate()))
 
-exports.getToken = function(user) {
-    return jwt.sign(user, config.secretKey, {expiresIn: 3600});
-};
-
-const opts = {};
-opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
-opts.secretOrKey = config.secretKey;
-
-exports.jwtPassport = passport.use(
+const opts = {
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    secretOrKey: config.secretKey
+}
+passport.use(
     new JwtStrategy(
         opts,
         (jwt_payload, done) => {
-            console.log('JWT payload:', jwt_payload);
-            User.findOne({_id: jwt_payload._id}, (err, user) => {
-                if (err) {
-                    return done(err, false);
-                } else if (user) {
-                    return done(null, user);
-                } else {
-                    return done(null, false);
-                }
-            });
+            User.findOne({ _id: jwt_payload._id }).then(user => {
+                if(!user) return done(null, false)
+                return done(null, user)
+            }).catch(err => done(err, null))
         }
     )
-);
+)
 
-exports.facebookPassport = passport.use(
+passport.serializeUser(User.serializeUser())
+passport.deserializeUser(User.deserializeUser())
+
+exports.getToken = user => {
+    return jwt.sign(user, config.secretKey, { expiresIn: "1h" })
+}
+
+exports.verifyUser = passport.authenticate('jwt', { session: false })
+
+exports.verifyAdmin = (req, res, next) => {
+    if (req.user.admin) {
+        return next()
+    }
+    const err = new Error('You are not authorized to perform this operation!')
+    err.status = 403
+    return next(err)
+}
+
+passport.use(
     new FacebookTokenStrategy(
         {
             clientID: config.facebook.clientId,
@@ -46,6 +55,7 @@ exports.facebookPassport = passport.use(
         }, 
         (accessToken, refreshToken, profile, done) => {
             User.findOne({facebookId: profile.id}, (err, user) => {
+                console.error('Error during user lookup:', err);
                 if (err) {
                     return done(err, false);
                 }
@@ -68,17 +78,3 @@ exports.facebookPassport = passport.use(
         }
     )
 );
-
-exports.verifyUser = passport.authenticate('jwt', { session: false });
-
-// Create the verifyAdmin middleware
-exports.verifyAdmin = (req, res, next) => {
-    if (req.user.admin) {
-        return next()
-    }
-
-    const err = new Error ('You are not authorized to perform this task');
-    err.status = 403
-    res.setHeader('Content-Type', 'text/plain')
-    return next(err)
-}

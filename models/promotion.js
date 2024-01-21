@@ -12,11 +12,11 @@ const promotionSchema = new Schema({
     },
     image: {
         type: String,
-        required: true
+        required: true,
     },
     featured: {
         type: Boolean,
-        default: false
+        default: true,
     },
     cost: {
         type: Currency,
@@ -25,12 +25,16 @@ const promotionSchema = new Schema({
     },
     description: {
         type: String,
-        required: true
+        required: true,
     }
-}, {
-    timestamps: true
+    },{
+    timestamps: true // Automatically add createdAt and updatedAt fields
 });
 
 const Promotion = mongoose.model('Promotion', promotionSchema);
 
 module.exports = Promotion;
+
+
+
+

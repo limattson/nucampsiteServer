@@ -9,20 +9,22 @@ const partnerSchema = new Schema({
     },
     image: {
         type: String,
-        required: true
+        required: true,
     },
     featured: {
         type: Boolean,
-        default: false
+        default: false,
     },
     description: {
         type: String,
-        required: true
+        required: true,
     }
-}, {
+    },{
     timestamps: true
 });
 
 const Partner = mongoose.model('Partner', partnerSchema);
 
 module.exports = Partner;
+
+

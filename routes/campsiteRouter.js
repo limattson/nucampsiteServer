@@ -1,94 +1,88 @@
 const express = require('express');
 const Campsite = require('../models/campsite');
-const authenticate = require('../authenticate');
+const { verifyUser, verifyAdmin }= require('../authenticate');
 const cors = require('./cors');
-
 
 const campsiteRouter = express.Router();
 
 campsiteRouter.route('/')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
-.get(cors.cors, (req, res, next) => {
-    Campsite.find()
-    .populate('comments.author')
-    .then(campsites => {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json(campsites);
+    .get(cors.cors, (req, res, next) => {
+        Campsite.find()
+            .populate('comments.author')
+            .then(campsites => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(campsites);
+            })
+            .catch(err => next(err));
     })
-    .catch(err => next(err));
-})
-// TODO: authorize admins only!
-.post(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
-    Campsite.create(req.body)
-    .then(campsite => {
-        console.log('Campsite Created ', campsite);
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json(campsite);
+    .post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
+        Campsite.create(req.body)
+            .then(campsite => {
+                console.log('Campsite Created ', campsite);
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(campsite);
+            })
+            .catch(err => next(err));
     })
-    .catch(err => next(err));
-})
-.put(cors.corsWithOptions, authenticate.verifyUser, (req, res) => {
-    res.statusCode = 403;
-    res.end('PUT operation not supported on /campsites');
-})
-// TODO: authorize admins only!
-.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
-    Campsite.deleteMany()
-    .then(response => {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json(response);
+    .put(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res) => {
+        res.statusCode = 403;
+        res.end('PUT operation not supported on /campsites');
     })
-    .catch(err => next(err));
-});
-
+    .delete(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
+        Campsite.deleteMany()
+            .then(response => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(response);
+            })
+            .catch(err => next(err));
+    });
 campsiteRouter.route('/:campsiteId')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
 .get(cors.cors, (req, res, next) => {
-    Campsite.findById(req.params.campsiteId)
-    .populate('comments.author')
-    .then(campsite => {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json(campsite);
+        Campsite.findById(req.params.campsiteId)
+            .populate('comments.author')
+            .then(campsite => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(campsite);
+            })
+            .catch(err => next(err));
     })
-    .catch(err => next(err));
-})
-.post(cors.corsWithOptions, authenticate.verifyUser, (req, res) => {
-    res.statusCode = 403;
-    res.end(`POST operation not supported on /campsites/${req.params.campsiteId}`);
-})
-// TODO: authorize admins only!
-.put(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
-    Campsite.findByIdAndUpdate(req.params.campsiteId, {
-        $set: req.body
-    }, { new: true })
-    .then(campsite => {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json(campsite);
+    .post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res) => {
+        res.statusCode = 403;
+        res.end(`POST operation not supported on /campsites/${req.params.campsiteId}`);
     })
-    .catch(err => next(err));
-})
-// TODO: authorize admins only!
-.delete(cors.corsWithOptions, authenticate.verifyAdmin, authenticate.verifyUser, (req, res, next) => {
-    Campsite.findByIdAndDelete(req.params.campsiteId)
-    .then(response => {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json(response);
+    .put(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
+        Campsite.findByIdAndUpdate(req.params.campsiteId, {
+            $set: req.body
+        }, { new: true })
+            .then(campsite => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(campsite);
+            })
+            .catch(err => next(err));
     })
-    .catch(err => next(err));
-});
-
+    .delete(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
+        Campsite.findByIdAndDelete(req.params.campsiteId)
+            .then(response => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(response);
+            })
+            .catch(err => next(err));
+    });
 campsiteRouter.route('/:campsiteId/comments')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
-.get(cors.cors, authenticate.verifyUser, (req, res, next) => {
-    Campsite.findById(req.params.campsiteId)
-    .populate('comments.author')
-    .then(campsite => {
+    .get(cors.cors, (req, res, next) => {
+        Campsite.findById(req.params.campsiteId)
+            .populate('comments.author')
+            .then(campsite => {
+        //openssl version                
         if (campsite) {
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
@@ -100,124 +94,14 @@ campsiteRouter.route('/:campsiteId/comments')
         }
     })
     .catch(err => next(err));
-})
-.post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
-    Campsite.findById(req.params.campsiteId)
-    .then(campsite => {
-        if (campsite) {
-            req.body.author = req.user._id;
-            campsite.comments.push(req.body);
-            campsite.save()
+        
+    })
+    .post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
+        Campsite.findById(req.params.campsiteId)
             .then(campsite => {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(campsite);
-            })
-            .catch(err => next(err));
-        } else {
-            err = new Error(`Campsite ${req.params.campsiteId} not found`);
-            err.status = 404;
-            return next(err);
-        }
-    })
-    .catch(err => next(err));
-})
-.put(cors.corsWithOptions, authenticate.verifyUser, (req, res) => {
-    res.statusCode = 403;
-    res.end(`PUT operation not supported on /campsites/${req.params.campsiteId}/comments`);
-})
-// TODO: authorize admins only!
-.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin,(req, res, next) => {
-    Campsite.findById(req.params.campsiteId)
-    .then(campsite => {
-        if (campsite) {
-            for (let i = (campsite.comments.length-1); i >= 0; i--) {
-                campsite.comments.id(campsite.comments[i]._id).remove();
-            }
-            campsite.save()
-            .then(campsite => {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(campsite);
-            })
-            .catch(err => next(err));
-        } else {
-            err = new Error(`Campsite ${req.params.campsiteId} not found`);
-            err.status = 404;
-            return next(err);
-        }
-    })
-    .catch(err => next(err));
-});
-
-campsiteRouter.route('/:campsiteId/comments/:commentId')
-.options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
-.get(cors.cors, (req, res, next) => {
-    Campsite.findById(req.params.campsiteId)
-    .populate('comments.author')
-    .then(campsite => {
-        if (campsite && campsite.comments.id(req.params.commentId)) {
-            res.statusCode = 200;
-            res.setHeader('Content-Type', 'application/json');
-            res.json(campsite.comments.id(req.params.commentId));
-        } else if (!campsite) {
-            err = new Error(`Campsite ${req.params.campsiteId} not found`);
-            err.status = 404;
-            return next(err);
-        } else {
-            err = new Error(`Comment ${req.params.commentId} not found`);
-            err.status = 404;
-            return next(err);
-        }
-    })
-    .catch(err => next(err));
-})
-.post(cors.corsWithOptions, authenticate.verifyUser, (req, res) => {
-    res.statusCode = 403;
-    res.end(`POST operation not supported on /campsites/${req.params.campsiteId}/comments/${req.params.commentId}`);
-})
-// TODO: allow logged-in users to update any comments that they themselves submitted
-.put(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
-    Campsite.findById(req.params.campsiteId)
-        .then(campsite => {
-            if (campsite && campsite.comments.id(req.params.commentId)) {
-                const comment = campsite.comments.id(req.params.commentId);
-                if (comment.author === req.user._id) {
-                    return next();
-                }
-                if (req.body.rating) {
-                    comment.rating = req.body.rating;
-                }
-                if (req.body.text) {
-                    comment.text = req.body.text;
-                }
-                campsite.save()
-                    .then(campsite => {
-                        res.statusCode = 200;
-                        res.setHeader('Content-Type', 'application/json');
-                        res.json(campsite);
-                    })
-                    .catch(err => next(err));
-            } else if (!campsite) {
-                const err = new Error(`Campsite ${req.params.campsiteId} not found`);
-                err.status = 404;
-                return next(err);
-            } else {
-                const err = new Error(`Comment ${req.params.commentId} not found`);
-                err.status = 404;
-                return next(err);
-            }
-        })
-        .catch(err => next(err));
-})
-// TODO: allow logged-in users to delete any comments that they themselves submitted
-.delete(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
-    Campsite.findById(req.params.campsiteId)
-        .then(campsite => {
-            if (campsite && campsite.comments.id(req.params.commentId)) {
-                const comment = campsite.comments.id(req.params.commentId);
-                if (comment.author === req.user._id) {
-                    comment.remove();
+                if (campsite) {
+                    req.body.author = req.user._id;
+                    campsite.comments.push(req.body);
                     campsite.save()
                         .then(campsite => {
                             res.statusCode = 200;
@@ -226,22 +110,126 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
                         })
                         .catch(err => next(err));
                 } else {
-                    // If the user is not the author of the comment, respond with a forbidden status code
-                    res.statusCode = 403; // Forbidden
-                    res.setHeader('Content-Type', 'application/json');
-                    res.json({ error: "You are not authorized to delete this comment." });
+                    err = new Error(`Campsite ${req.params.campsiteId} not found`);
+                    err.status = 404;
+                    return next(err);
                 }
-            } else if (!campsite) {
-                const err = new Error(`Campsite ${req.params.campsiteId} not found`);
-                err.status = 404;
-                return next(err);
-            } else {
-                const err = new Error(`Comment ${req.params.commentId} not found`);
-                err.status = 404;
-                return next(err);
-            }
-        })
-        .catch(err => next(err));
-});
+            })
+            .catch(err => next(err));
+    })
+    .put(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res) => {
+        res.statusCode = 403;
+        res.end(`PUT operation not supported on /campsites/${req.params.campsiteId}/comments`);
+    })
+    .delete(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
+        Campsite.findById(req.params.campsiteId)
+            .then(campsite => {
+                if (campsite) {
+                    for (let i = (campsite.comments.length - 1); i >= 0; i--) {
+                        campsite.comments.id(campsite.comments[i]._id).remove();
+                    }
+                    campsite.save()
+                        .then(campsite => {
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.json(campsite);
+                        })
+                        .catch(err => next(err));
+                } else {
+                    err = new Error(`Campsite ${req.params.campsiteId} not found`);
+                    err.status = 404;
+                    return next(err);
+                }
+            })
+            .catch(err => next(err));
+    });
+campsiteRouter.route('/:campsiteId/comments/:commentId')
+.options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
+    .get(cors.cors, (req, res, next) => {
+        Campsite.findById(req.params.campsiteId)
+            .populate('comments.author')
+            .then(campsite => {
+                if (campsite && campsite.comments.id(req.params.commentId)) {
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.json(campsite.comments.id(req.params.commentId));
+                } else if (!campsite) {
+                    err = new Error(`Campsite ${req.params.campsiteId} not found`);
+                    err.status = 404;
+                    return next(err);
+                } else {
+                    err = new Error(`Comment ${req.params.commentId} not found`);
+                    err.status = 404;
+                    return next(err);
+                }
+            })
+            .catch(err => next(err));
+    })
+    .post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
+        res.statusCode = 403;
+        res.end(`POST operation not supported on /campsites/${req.params.campsiteId}/comments/${req.params.commentId}`);
+    })
+    .put(cors.corsWithOptions, verifyUser, (req, res, next) => {
+        Campsite.findById(req.params.campsiteId)
+            .then(campsite => {
+                if (req.user._id.equals(campsite.comments.id(req.params.commentId).author)) {
+                    if (campsite && campsite.comments.id(req.params.commentId)) {
+                        if (req.body.rating) {
+                            campsite.comments.id(req.params.commentId).rating = req.body.rating;
+                        }
+                        if (req.body.text) {
+                            campsite.comments.id(req.params.commentId).text = req.body.text;
+                        }
+                        campsite.save()
+                            .then(campsite => {
+                                res.statusCode = 200;
+                                res.setHeader('Content-Type', 'application/json');
+                                res.json(campsite);
+                            })
+                            .catch(err => next(err));
+                    } else {
+                        const err = new Error('Comment not found');
+                        err.status = 404;
+                        return next(err);
+                    }
+                } else {
+                    const err = new Error(`Campsite ${req.params.campsiteId} or Comment ${req.params.commentId} not found`);
+                    err.status = 403;
+                    res.setHeader('Content-Type', 'text/plain');
+                    return next(err);
+                }
+            })
+            .catch(err => next(err));
+    })
+
+    .delete(cors.corsWithOptions, verifyUser, (req, res, next) => {
+        Campsite.findById(req.params.campsiteId)
+            .then(campsite => {
+                if (campsite && campsite.comments.id(req.params.commentId)) {
+                    if (req.user._id.equals(campsite.comments.id(req.params.commentId).author)) {
+                        campsite.comments.id(req.params.commentId).remove();
+                        campsite.save()
+                            .then(campsite => {
+                                res.statusCode = 200;
+                                res.setHeader('Content-Type', 'application/json');
+                                res.json(campsite);
+                            })
+                            .catch(err => next(err));
+                    } else {
+                        const err = new Error('You are not the author of the comment');
+                        err.status = 403;
+                        res.setHeader('Content-Type', 'text/plain');
+                        return next(err);
+                    }
+                } else {
+                    const err = new Error(`Campsite ${req.params.campsiteId} or Comment ${req.params.commentId} not found`);
+                    err.status = 404;
+                    return next(err);
+                }
+            })
+            .catch(err => next(err));
+    });
 
 module.exports = campsiteRouter;
+
+
